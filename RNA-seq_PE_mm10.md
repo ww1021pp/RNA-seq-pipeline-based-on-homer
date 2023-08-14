@@ -1,4 +1,4 @@
-# this is the scripts used to do RAA-seq rutine analysis from raw sequencing data
+# this is the scripts used to do RAA-seq rutine analysis from raw sequencing data download from SRA database
 
 ```
 #!/usr/bin/bash
