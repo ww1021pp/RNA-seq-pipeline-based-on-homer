@@ -41,5 +41,114 @@ htseq-count [options] <alignment_files> <gff_file>
 ```
 python -m HTSeq.scripts.count [options] <alignment_files> <gff_file>
 ```
-## step 5: Differential gene expression analysis from assembled gene expression (DEseq2 or EdgeR)
+## step 5: Differential gene expression analysis from assembled gene expression for samples with repeat(DEseq2 or EdgeR), if there is no replicants, just do odd ration for each gene
+
+### 5.1. Launch RStudio and load necessary library
+```
+library(“DESeq2”)
+library(reshape2)
+library(stringr)
+library(ggpubr)
+library(DESeq2)
+library(data.table)
+```
+### 5.2(1) Create necessary data object from HTSeqCount results.
+
+```
+sample.names <- sort(paste(c(“MT”, “WT”), rep(1:3, each=2), sep=““))
+file.names <- paste(“../”, sample.names, “/”, sample.names, “.count.txt”, sep=““)
+conditions <- factor(c(rep(“MT”, 3), rep(“WT”, 3)))
+sampleTable <- data.frame(sampleName=sample.names,
+fileName=file.names,
+condition=conditions)
+# read in the HTSeq count data 
+ddsHTSeq<-DESeqDataSetFromHTSeqCount(sampleTable=sampleTable, directory=“.”, 
+design=~ condition )
+ddsHTSeq <- ddsHTSeq[rowSums(counts(ddsHTSeq)) > 10, ]
+```
+In this sub-step, we specify the sample identifiers, name of files with gene counts for each sample, and experiment condition(s) for each sample; then pass this information to DESeqDataSetFromHTSeqCount function to make a DESeqDataSet object for following analysis.
+
+### 5.2(2) Create necessary data object from expression count matrix
+```
+###setwd################
+rm(list = ls())
+setwd("/workspace/rsrch2/panpanliu/project/RNA-seq/Jiahua_0104/hs_Liver_DE_DeSeq2")
+
+SampleType = OutputPrefix = "DE"
+genecols<-c("Transcript_ID","chr", "start", "end", "strand", "Length", "Copies", "Symbol","Annotation.Divergence")
+FC = 0.586
+pvalue = 0.05
+
+library(ggplot2)
+library(reshape2)
+library(stringr)
+library(ggpubr)
+library(DESeq2)
+library(data.table)
+raw <- read.delim("../4_homer/rawCount.txt", header = TRUE,stringsAsFactors = FALSE)
+
+colnames(raw)<-sapply(colnames(raw),function(x) gsub("\\.\\..*","",as.character(x)))
+colnames(raw)[1]="Transcript_ID"
+rownames(raw)=raw$Transcript_ID
+#######################the same as the command###################################
+raw$Symbol<-sapply(strsplit(raw$Annotation.Divergence,"\\|"),getElement, 1)
+
+##########################
+
+all_tag=c("Norm","NAT","NASH","HCC")
+
+#######################remove the transcripts without gene annotation(As we focused on the known protein)#####
+raw<-raw[which(raw$Symbol != "0.000"),]
+print(dim(raw))
+raw<-raw[order(raw$Symbol,raw$Length,decreasing=TRUE),]
+raw_uniq <- raw[match(unique(raw$Symbol), raw$Symbol),]
+print(dim(raw_uniq))
+
+
+
+coldata=DataFrame(
+  batch=factor(sapply(strsplit(colnames(raw_uniq)[9:(dim(raw_uniq)[2]-1)],"\\_"),getElement, 1),levels = c("Norm","NAT","NASH","HCC")),
+ # strain=factor(sapply(strsplit(colnames(raw_uniq)[9:(dim(raw_uniq)[2]-1)],"\\."),getElement, 2),levels = c("B6","129")),
+  condition=factor(sapply(strsplit(colnames(raw_uniq)[9:(dim(raw_uniq)[2]-1)],"\\_"),getElement, 1),levels = c("Norm","NAT","NASH","HCC") )
+)
+
+head(coldata);dim(coldata)
+rownames(coldata)=colnames(raw_uniq)[9:(dim(raw_uniq)[2]-1)]
+
+coldata$cnd<-sapply(coldata$condition,function(x) gsub(all_tag[1],"0",x))
+coldata$cnd<-sapply(coldata$cnd,function(x) gsub(all_tag[2],"1",x))
+coldata$cnd<-sapply(coldata$cnd,function(x) gsub(all_tag[3],"2",x))
+coldata$cnd<-sapply(coldata$cnd,function(x) gsub(all_tag[4],"3",x))
+
+coldata$group<-coldata$cnd
+#coldata$group<-relevel(coldata$group,ref="1")
+
+as.data.frame(coldata)
+Filter_value=10
+row_mean=data.frame(
+Nrom = rowMeans(raw_uniq[,grepl(all_tag[1],colnames(raw_uniq))]),
+NAT = rowMeans(raw_uniq[,grepl(all_tag[2],colnames(raw_uniq))]),
+NASH = rowMeans(raw_uniq[,grepl(all_tag[3],colnames(raw_uniq))]),
+HCC = rowMeans(raw_uniq[,grepl(all_tag[4],colnames(raw_uniq))])
+)
+
+head(row_mean)
+row_mean$count<-rowSums(row_mean[,1:4]>3)
+rownames(row_mean)=rownames(raw_uniq)
+raw_uniq_filter<-raw_uniq[row_mean$count>2,]
+head(raw_uniq_filter);dim(raw_uniq_filter)
+
+count<-raw_uniq_filter[,9:(dim(raw_uniq_filter)[2]-1)]
+rownames(count)<-raw_uniq_filter$Transcript_ID
+dds <- DESeqDataSetFromMatrix(countData=round(count), colData=coldata, design= ~group)
+
+```
+
+
+
+5.3. Run differential gene analysis.
+```
+ dds <-DESeq(ddsHTSeq)
+
+
 
