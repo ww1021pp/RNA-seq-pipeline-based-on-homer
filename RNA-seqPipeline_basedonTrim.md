@@ -20,7 +20,26 @@ name for the trimmed reads should be followed after the > sign
 
 ## step 3: map clean reads to reference genome
 Map the trimmed sequence reads to reference genome using approciat softwares(STAR, tophat or bowtie2 et.al). Specifically, we first create a directory with the sample name to store the output then calling tophat2 and output results to the directory’s sub-directory named Tophat_Out. Since this is a mouse sample, UCSC mm10 is used as the reference genome and the reference transcriptome file and bowtie index files are stored under Indexes directory in the home directory. Bowtie2 index files contain the genome sequences to be aligned to in bowtie2 format. Tophat2 uses bowtie2 as the base sequence aligner.
+```
+STAR --runThreadN 12 --genomeDir genomeIndex --readFilesCommand zcat --readFilesIn R1.fastq.gz R2.fastq.gz --outFileNamePrefix $dir/$package/$filename --outSAMunmapped Within --outFilterType BySJout --twopassMode Basic --outSAMtype BAM SortedByCoordinate --outWigType bedGraph
+```
+## step 4: Assemble gene expression from aligned reads
 
+Use homer(HTSeq) to quantify the number of reads mapped to each gene and make a genome annotation with different parameters.
 
+```
+analysisRepeat.pl -h  ## use homer to do gene expression quantification
+samtools view MT1/Tophat_Out/accepted_hits.sorted.bam | python -m
+HTSeq.scripts.count -q -s no - ~/Indexes/Mus_musculus/UCSC/mm10/Genes/genes.gtf >MT1/MT1.count.txt
+```
+### After you have installed HTSeq (see Prequisites and installation), you can run htseq-count from the command line:
+```
+htseq-count [options] <alignment_files> <gff_file>
+```
+### If the file htseq-count is not in your path, you can, alternatively, call the script with
 
-###
+```
+python -m HTSeq.scripts.count [options] <alignment_files> <gff_file>
+```
+## step 5: Differential gene expression analysis from assembled gene expression (DEseq2 or EdgeR)
+
