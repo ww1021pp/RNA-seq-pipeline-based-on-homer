@@ -19,3 +19,8 @@ from the end (3’ end). Users should change these according to the FastQC repor
 name for the trimmed reads should be followed after the > sign
 
 ## step 3: map clean reads to reference genome
+Map the trimmed sequence reads to reference genome using approciat softwares(STAR, tophat or bowtie2 et.al). Specifically, we first create a directory with the sample name to store the output then calling tophat2 and output results to the directory’s sub-directory named Tophat_Out. Since this is a mouse sample, UCSC mm10 is used as the reference genome and the reference transcriptome file and bowtie index files are stored under Indexes directory in the home directory. Bowtie2 index files contain the genome sequences to be aligned to in bowtie2 format. Tophat2 uses bowtie2 as the base sequence aligner.
+
+
+
+###
