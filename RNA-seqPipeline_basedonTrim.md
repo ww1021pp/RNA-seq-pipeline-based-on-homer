@@ -68,7 +68,7 @@ ddsHTSeq <- ddsHTSeq[rowSums(counts(ddsHTSeq)) > 10, ]
 ```
 In this sub-step, we specify the sample identifiers, name of files with gene counts for each sample, and experiment condition(s) for each sample; then pass this information to DESeqDataSetFromHTSeqCount function to make a DESeqDataSet object for following analysis.
 
-### 5.2(2) Create necessary data object from expression count matrix
+### 5.2(2) Create necessary data object from expression count matrix(from homer gene quantify progress)
 ```
 ###setwd################
 rm(list = ls())
